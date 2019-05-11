@@ -12,7 +12,8 @@ func main() {
 	fmt.Println(posTable)
 	finalTables := engine.JoinPosTable(piTable, posTable)
 	fmt.Println(finalTables)
-	for _, values := range finalTables {
-		fmt.Println(len(values))
-	}
+	pos := engine.NewGamePosition()
+	res := pos.GenerateMoves()
+	fmt.Println(res)
+
 }
