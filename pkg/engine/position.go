@@ -1,6 +1,9 @@
 package engine
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // A1 left hand bottom corner of board
 const A1 = 91
@@ -59,8 +62,8 @@ type Position struct {
 	Score       int
 	WhiteCastle *CastleRights
 	BlackCastle *CastleRights
-	EnPassant   string
-	KingPassant string
+	EnPassant   int
+	KingPassant int
 }
 
 // NewGamePosition creates position for new game
@@ -190,4 +193,59 @@ func (pos *Position) GenerateMoves() []ChessMove {
 		moves = append(moves, mov)
 	}
 	return moves
+}
+
+func isCapture(tgtSq string) bool {
+	enPs := map[string]bool{
+		"p": true,
+		"n": true,
+		"b": true,
+		"q": true,
+		"k": true,
+	}
+	_, yay := enPs[tgtSq]
+	return yay
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// ScoreMove takes a ChessMove and gives it a score
+func (pos *Position) ScoreMove(move ChessMove, posMap map[string][]int) int {
+	from := move.Start
+	to := move.End
+	fromSq := pos.Board.State[from]
+	toSq := pos.Board.State[to]
+	score := posMap[fromSq][from] - posMap[fromSq][to]
+	fmt.Println(score)
+	if isCapture(toSq) {
+		score += posMap[strings.ToUpper(toSq)][119-to]
+	}
+	// Castling check detection
+	if abs(to-pos.KingPassant) < 2 {
+		score += posMap["K"][119-to]
+	}
+	// Castling
+	if fromSq == "K" && abs(from-to) == 2 {
+		score += posMap["R"][abs(from+to)/2]
+		if to < from {
+			score -= posMap["R"][A1]
+		} else {
+			score -= posMap["R"][H1]
+		}
+	}
+	if fromSq == "P" {
+		// Calculate pawn promotion score
+		if A8 <= to && to <= H8 {
+			score += posMap["Q"][to] - posMap["P"][to]
+		}
+		if to == pos.EnPassant {
+			score += posMap["P"][119-(to+10)]
+		}
+	}
+	return score
 }

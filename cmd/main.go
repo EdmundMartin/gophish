@@ -15,4 +15,8 @@ func main() {
 	pos := engine.NewGamePosition()
 	res := pos.GenerateMoves()
 	fmt.Println(res)
+	for _, i := range res {
+		score := pos.ScoreMove(i, finalTables)
+		fmt.Println(i, score)
+	}
 }
