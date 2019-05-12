@@ -29,6 +29,22 @@ var validSquares = map[string]bool{
 // PossibleMoves that can be made by a particular piece
 var PossibleMoves = map[string][]int{
 	"P": []int{-10, -20, -11, -9},
+	"N": []int{-19, -8, 12, 21, 19, 8, -12, -21},
+	"B": []int{-9, -11, 9, 11},
+	"R": []int{-10, 10, 1, -1},
+	"Q": []int{1, -1, 10, -10, -9, 9, -11, 11},
+	"K": []int{1, -1, 10, -10, -9, 9, -11, 11},
+}
+
+// ChessMove represents a move on a Chess board
+type ChessMove struct {
+	Start int
+	End   int
+	Type  string
+}
+
+func (c ChessMove) String() string {
+	return fmt.Sprintf("move from %d to %d", c.Start, c.End)
 }
 
 // CastleRights represents the right to castle by a particular player
@@ -138,9 +154,21 @@ func validPawnMove(mov int, idx int, tgtIdx int, tgtSq string) bool {
 	return true
 }
 
+func checkForCastles(pos *Position) []ChessMove {
+	castlingMoves := []ChessMove{}
+	if pos.Board.State[A1] == "R" && pos.Board.State[95] == "K" && pos.WhiteCastle.West == true {
+		castlingMoves = append(castlingMoves, ChessMove{95, 93, "CAW"})
+	}
+	if pos.Board.State[H1] == "R" && pos.Board.State[95] == "K" && pos.WhiteCastle.East == true {
+		fmt.Println("can castle east")
+		castlingMoves = append(castlingMoves, ChessMove{95, 97, "CAE"})
+	}
+	return castlingMoves
+}
+
 // GenerateMoves takes a position and generates the list of possible moves for the engine
-func (pos *Position) GenerateMoves() [][2]int {
-	moves := [][2]int{}
+func (pos *Position) GenerateMoves() []ChessMove {
+	moves := []ChessMove{}
 	for idx, piece := range pos.Board.State {
 		movs, ok := PossibleMoves[piece]
 		if ok {
@@ -149,11 +177,17 @@ func (pos *Position) GenerateMoves() [][2]int {
 				tgtSq := pos.Board.State[tgtIdx]
 				if validSquare(tgtSq) {
 					if piece == "P" && validPawnMove(mov, idx, tgtIdx, tgtSq) {
-						moves = append(moves, [2]int{idx, tgtIdx})
+						moves = append(moves, ChessMove{idx, tgtIdx, "ST"})
+					} else {
+						moves = append(moves, ChessMove{idx, tgtIdx, "ST"})
 					}
 				}
 			}
 		}
+	}
+	castMoves := checkForCastles(pos)
+	for _, mov := range castMoves {
+		moves = append(moves, mov)
 	}
 	return moves
 }

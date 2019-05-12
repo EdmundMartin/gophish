@@ -15,5 +15,4 @@ func main() {
 	pos := engine.NewGamePosition()
 	res := pos.GenerateMoves()
 	fmt.Println(res)
-
 }
