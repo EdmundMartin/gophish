@@ -137,33 +137,42 @@ func validSquare(sq string) bool {
 }
 
 func validPawnMove(mov int, idx int, tgtIdx int, tgtSq string) bool {
+	val := true
 	if mov == -20 && idx > A1+10 {
-		return false
+		val = false
 	}
 	// Pawn moving two squares forward cannot take
 	if mov == -20 && tgtSq != "." {
-		return false
+		val = false
 	}
-	// Pawn movint one square forward cannot take
+	// Pawn movint one square forward cannot
 	if mov == -10 && tgtSq != "." {
-		return false
+		val = false
 	}
 	if mov == -9 && tgtSq == "." {
-		return false
+		val = false
 	}
 	if mov == -11 && tgtSq == "." {
-		return false
+		val = false
+	}
+	return val
+}
+
+func (pos *Position) freeRange(tgtRange []int) bool {
+	for _, idx := range tgtRange {
+		if pos.Board.State[idx] != "." {
+			return false
+		}
 	}
 	return true
 }
 
 func checkForCastles(pos *Position) []ChessMove {
 	castlingMoves := []ChessMove{}
-	if pos.Board.State[A1] == "R" && pos.Board.State[95] == "K" && pos.WhiteCastle.West == true {
+	if pos.Board.State[A1] == "R" && pos.Board.State[95] == "K" && pos.WhiteCastle.West == true && pos.freeRange([]int{92, 93, 94}) {
 		castlingMoves = append(castlingMoves, ChessMove{95, 93, "CAW"})
 	}
-	if pos.Board.State[H1] == "R" && pos.Board.State[95] == "K" && pos.WhiteCastle.East == true {
-		fmt.Println("can castle east")
+	if pos.Board.State[H1] == "R" && pos.Board.State[95] == "K" && pos.WhiteCastle.East == true && pos.freeRange([]int{96, 97}) {
 		castlingMoves = append(castlingMoves, ChessMove{95, 97, "CAE"})
 	}
 	return castlingMoves
@@ -179,9 +188,9 @@ func (pos *Position) GenerateMoves() []ChessMove {
 				tgtIdx := mov + idx
 				tgtSq := pos.Board.State[tgtIdx]
 				if validSquare(tgtSq) {
-					if piece == "P" && validPawnMove(mov, idx, tgtIdx, tgtSq) {
+					if piece == "P" && validPawnMove(mov, idx, tgtIdx, tgtSq) == true {
 						moves = append(moves, ChessMove{idx, tgtIdx, "ST"})
-					} else {
+					} else if piece != "P" {
 						moves = append(moves, ChessMove{idx, tgtIdx, "ST"})
 					}
 				}
@@ -221,7 +230,6 @@ func (pos *Position) ScoreMove(move ChessMove, posMap map[string][]int) int {
 	fromSq := pos.Board.State[from]
 	toSq := pos.Board.State[to]
 	score := posMap[fromSq][from] - posMap[fromSq][to]
-	fmt.Println(score)
 	if isCapture(toSq) {
 		score += posMap[strings.ToUpper(toSq)][119-to]
 	}
@@ -248,4 +256,75 @@ func (pos *Position) ScoreMove(move ChessMove, posMap map[string][]int) int {
 		}
 	}
 	return score
+}
+
+// BestMove returns the best legal move
+func (pos *Position) BestMove(posMap map[string][]int) ChessMove {
+	// Is horrible, lets rewrite
+	allMoves := pos.GenerateMoves()
+	rankedMoves := make(map[ChessMove]int)
+	for _, move := range allMoves {
+		score := pos.ScoreMove(move, posMap)
+		rankedMoves[move] = score
+	}
+	var topMove ChessMove
+	var count = 0
+	var topVal int
+	for key, val := range rankedMoves {
+		if count == 0 {
+			topMove = key
+			topVal = val
+		} else {
+			if val > topVal {
+				topMove = key
+			}
+		}
+		count++
+	}
+	return topMove
+}
+
+func put(pos *Position, start, end int, piece string) {
+	pos.Board.State[end] = piece
+	pos.Board.State[start] = `.`
+}
+
+func (pos *Position) updateCastleRights(from int, fromPiece string) {
+	if from == A1 {
+		pos.WhiteCastle.West = false
+	}
+	if from == H1 {
+		pos.WhiteCastle.East = false
+	}
+	if from == A8 {
+		pos.BlackCastle.West = false
+	}
+	if from == H8 {
+		pos.BlackCastle.East = true
+	}
+	if fromPiece == "K" {
+		pos.WhiteCastle.West = false
+		pos.WhiteCastle.East = false
+	}
+}
+
+// Move makes a chess move on a board
+func (pos *Position) Move(chMove ChessMove) {
+	from := chMove.Start
+	fromPiece := pos.Board.State[from]
+	put(pos, chMove.Start, chMove.End, fromPiece)
+	fmt.Println(pos.Board.State)
+	pos.updateCastleRights(from, fromPiece)
+	// Sort out rook after castle
+	if chMove.Type == "CAW" {
+		pos.Board.State[H1] = `.`
+		pos.Board.State[96] = `R`
+	}
+	if chMove.Type == "CAE" {
+		pos.Board.State[A1] = `.`
+		pos.Board.State[94] = "R"
+	}
+	if fromPiece == "P" {
+		// LOL DO STUFF WITH PAWNS
+	}
 }

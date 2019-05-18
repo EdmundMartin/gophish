@@ -11,12 +11,8 @@ func main() {
 	posTable := engine.LoadPositionTable("../configs/positional_tbl.json")
 	fmt.Println(posTable)
 	finalTables := engine.JoinPosTable(piTable, posTable)
-	fmt.Println(finalTables)
 	pos := engine.NewGamePosition()
-	res := pos.GenerateMoves()
+	res := pos.BestMove(finalTables)
 	fmt.Println(res)
-	for _, i := range res {
-		score := pos.ScoreMove(i, finalTables)
-		fmt.Println(i, score)
-	}
+	pos.Move(res)
 }
