@@ -312,6 +312,7 @@ func (pos *Position) updateCastleRights(from int, fromPiece string) {
 func (pos *Position) Move(chMove ChessMove) {
 	from := chMove.Start
 	fromPiece := pos.Board.State[from]
+	toPiece := pos.Board.State[chMove.End]
 	put(pos, chMove.Start, chMove.End, fromPiece)
 	fmt.Println(pos.Board.State)
 	pos.updateCastleRights(from, fromPiece)
@@ -325,6 +326,16 @@ func (pos *Position) Move(chMove ChessMove) {
 		pos.Board.State[94] = "R"
 	}
 	if fromPiece == "P" {
-		// LOL DO STUFF WITH PAWNS
+		// Promote Pawn to Queen when it survives to other side of board
+		if chMove.End >= A8 && chMove.End <= H8 {
+			pos.Board.State[chMove.End] = `Q`
+		}
+		// Handle en-passant
+		if chMove.End-chMove.Start == -20 {
+			pos.EnPassant = from + -10
+		}
+		if chMove.End-chMove.Start == -9 && toPiece == `.` || chMove.End-chMove.Start == -11 && toPiece == `.` {
+			pos.Board.State[chMove.End+10] = `.`
+		}
 	}
 }
